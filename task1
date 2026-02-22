@@ -1,0 +1,93 @@
+from pyspark.sql.types import IntegerType, FloatType
+int_cols = ["student_id", "age", "part_time_job", "upcoming_deadline", "mental_health_score"]
+
+float_cols = [
+    "study_hours", "self_study_hours", "online_classes_hours",
+    "social_media_hours", "gaming_hours", "sleep_hours",
+    "screen_time_hours", "exercise_minutes", "caffeine_intake_mg",
+    "focus_index", "burnout_level", "productivity_score", "exam_score"
+]
+
+for col_name in int_cols:
+    df = df.withColumn(col_name, df[col_name].cast(IntegerType()))
+
+for col_name in float_cols:
+    df = df.withColumn(col_name, df[col_name].cast(FloatType()))
+
+print("Schema after type casting:")
+df.printSchema()
+df.show(5)
+from pyspark.sql.types import IntegerType, FloatType
+int_cols = ["student_id", "age", "part_time_job", "upcoming_deadline", "mental_health_score"]
+float_cols = [
+    "study_hours", "self_study_hours", "online_classes_hours",
+    "social_media_hours", "gaming_hours", "sleep_hours",
+    "screen_time_hours", "exercise_minutes", "caffeine_intake_mg",
+    "focus_index", "burnout_level", "productivity_score", "exam_score
+for col_name in int_cols:
+    df = df.withColumn(col_name, df[col_name].cast(IntegerType()))
+for col_name in float_cols:
+    df = df.withColumn(col_name, df[col_name].cast(FloatType()))
+print("Schema after type casting:")
+df.printSchema()
+df.show(5)
+selected_cols = ['study_hours', 'sleep_hours', 'exam_score', 'productivity_score']
+descriptive_stats = df.select(selected_cols).describe()
+descriptive_stats.show()
+from pyspark.sql.functions import avg
+
+grouped_stats = df.groupBy('academic_level', 'gender').agg(
+    avg('exam_score').alias('average_exam_score'),
+    avg('productivity_score').alias('average_productivity_score')
+)
+grouped_stats.show()
+from pyspark.sql.functions import when, avg
+
+# Create social_media_category
+df = df.withColumn("social_media_category",
+    when(df["social_media_hours"] < 2, "Low") \
+    .when((df["social_media_hours"] >= 2) & (df["social_media_hours"] <= 5), "Medium") \
+    .otherwise("High")
+)
+
+# Create gaming_category
+df = df.withColumn("gaming_category",
+    when(df["gaming_hours"] < 1, "Low") \
+    .when((df["gaming_hours"] >= 1) & (df["gaming_hours"] <= 3), "Medium") \
+    .otherwise("High")
+)
+
+# Group by digital habit categories and calculate averages
+digital_habits_impact = df.groupBy('social_media_category', 'gaming_category').agg(
+    avg('exam_score').alias('average_exam_score_by_digital_habits'),
+    avg('productivity_score').alias('average_productivity_score_by_digital_habits')
+)
+
+print("Impact of Digital Habits on Performance:")
+digital_habits_impact.show()
+from pyspark.sql.functions import corr
+
+# Define the list of numerical features to correlate with 'exam_score'
+correlation_features = ['study_hours', 'sleep_hours', 'mental_health_score', 'focus_index', 'burnout_level']
+
+print("Correlation with 'exam_score':")
+for feature in correlation_features:
+    correlation_coefficient = df.stat.corr(feature, 'exam_score')
+    print(f"  {feature} vs exam_score: {correlation_coefficient:.4f}")
+    grouped_stats_pd = grouped_stats.toPandas()
+print("Converted grouped_stats to Pandas DataFrame:")
+print(grouped_stats_pd.head())
+import matplotlib.pyplot as plt
+import seaborn as sns
+grouped_stats_melted = grouped_stats_pd.melt(id_vars=['academic_level', 'gender'],
+                                             value_vars=['average_exam_score', 'average_productivity_score'],
+                                             var_name='metric',
+                                             value_name='average_value')
+g = sns.catplot(x='academic_level', y='average_value', hue='gender', col='metric', data=grouped_stats_melted,
+                kind='bar', palette='viridis', height=6, aspect=1.2)
+g.set_axis_labels("Academic Level", "Average Score")
+g.set_titles("{col_name}")
+g.set_xticklabels(rotation=45, ha='right')
+plt.suptitle('Average Exam Score and Productivity Score by Academic Level and Gender', y=1.02) # Adjust title position
+plt.tight_layout()
+plt.show()
